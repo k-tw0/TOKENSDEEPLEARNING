@@ -1,162 +1,109 @@
-function segmentarOraciones(texto) {
-    // Define una expresión regular para encontrar los posibles puntos finales de las oraciones.
-    var regex = /[.!?]+/g;
-  
-    // Divide el texto en oraciones utilizando la expresión regular.
-    var oraciones = texto.split(regex);
-  
-    // Elimina espacios en blanco adicionales al comienzo o final de cada oración.
-    oraciones = oraciones.map(function(oracion) {
-      return oracion.trim();
-    });
-  
-    // Elimina cualquier oración vacía generada por la división.
-    oraciones = oraciones.filter(function(oracion) {
-      return oracion !== "";
-    });
-  
-    // Retorna el arreglo de oraciones segmentadas.
-    return oraciones;
-  }
-  
-  // Ejemplo de uso:
-  var textoEjemplo = "Hola. ¿Cómo estás? Me alegra verte!";
-  var oracionesSegmentadas = segmentarOraciones(textoEjemplo);
-  console.log(oracionesSegmentadas);
-  
-  function tokenizarOracion(oracion) {
-    // Utiliza la función split() para dividir la oración en palabras individuales.
-    var palabras = oracion.split(" ");
-  
-    // Elimina cualquier espacio en blanco adicional al comienzo o final de cada palabra.
-    palabras = palabras.map(function(palabra) {
-      return palabra.trim();
-    });
-  
-    // Elimina cualquier palabra vacía generada por la división.
-    palabras = palabras.filter(function(palabra) {
-      return palabra !== "";
-    });
-  
-    // Retorna el arreglo de palabras tokenizadas.
-    return palabras;
-  }
-  
-  // Ejemplo de uso:
-  var oracionEjemplo = "El tokenizador puede dividir una oración en palabras individuales.";
-  var palabrasTokenizadas = tokenizarOracion(oracionEjemplo);
-  console.log(palabrasTokenizadas);
-  
-  
-  
-  
-  function eliminarPuntuacion(texto) {
-    // Expresión regular para eliminar la puntuación y los caracteres especiales
-    var regex = /[^\w\s]|_/g;
-  
-    // Reemplazar los caracteres coincidentes con la expresión regular por una cadena vacía
-    var textoSinPuntuacion = texto.replace(regex, "");
-  
-    return textoSinPuntuacion;
-  }
-  
-  // Ejemplo de uso
-  var textoOriginal = "¡Hola, mundo! Esto es un ejemplo de texto con puntuación y caracteres especiales.";
-  var textoSinPuntuacion = eliminarPuntuacion(textoOriginal);
-  
-  console.log(textoSinPuntuacion);
-  
-  
-  
-  
-  function normalizeText(text) {
-    // Define the punctuation characters to be removed.
+// Función para normalizar el texto de entrada
+function normalizeText(text) {
     const punctuationRegex = /[,.!?;:]/g;
-  
-    // Split the text into tokens.
+    
+    // Dividir el texto en tokens (palabras)
     const tokens = text.split(' ');
-  
-    // Remove punctuation from each token.
+    
+    // Eliminar caracteres de puntuación de cada token
     const normalizedTokens = tokens.map(token => token.replace(punctuationRegex, ''));
-  
-    // Lemmatize each token.
+    
+    // Lematizar cada token convirtiéndolo a minúsculas
     const lemmatizedTokens = normalizedTokens.map(token => lemmatize(token));
-  
-    // Return the normalized text.
+    
+    // Unir los tokens lematizados en un solo texto
     return lemmatizedTokens.join(' ');
   }
   
+  // Función para lematizar un token
   function lemmatize(token) {
-    // Define the lemmatizer function.
-    // Replace this with an actual lemmatizer implementation for Spanish.
     function lemmatizer(token) {
-      // Placeholder implementation. Replace this with your lemmatizer logic for Spanish.
+      // Lematizador simple: convierte el token a minúsculas
       return token.toLowerCase();
     }
-  
-    // Get the lemmatized form of the token.
+    
+    // Obtener el lema del token
     const lemma = lemmatizer(token);
-  
-    // Return the lemmatized form of the token.
+    
+    // Retornar el lema del token
     return lemma;
   }
   
-  // Example usage
+  const wordIndex = {}; // Diccionario para mapear palabras a índices numéricos
+  let index = 0;
+  
+  // Función para preprocesar el texto y convertirlo en una secuencia de índices numéricos
+  function preprocessText(text) {
+    const normalizedText = normalizeText(text);
+    
+    // Dividir el texto normalizado en tokens (palabras)
+    const tokenizedText = normalizedText.split(' ');
+  
+    // Convertir palabras en índices numéricos
+    const indexedText = tokenizedText.map(word => {
+      if (!wordIndex.hasOwnProperty(word)) {
+        wordIndex[word] = index;
+        index++;
+      }
+      return wordIndex[word];
+    });
+  
+    return indexedText;
+  }
+  
+  // Resto del código del modelo TensorFlow.js
   const sentence = "Me encanta correr, pero no puedo correr hoy.";
-  const normalizedSentence = normalizeText(sentence);
-  console.log(normalizedSentence);
+  const preprocessedSentence = preprocessText(sentence);
+  console.log(preprocessedSentence);
   
+  const maxLength = 8; // Longitud máxima esperada por el modelo
   
-  // Función principal para lematizar un texto
-  function lemmatizeText(inputText) {
-    // Dividir el texto en palabras
-    var words = inputText.split(' ');
+  // Ajustar la longitud del texto preprocesado al máximo permitido
+  const paddedSentence = preprocessedSentence.slice(0, maxLength);
   
-    // Lematizar cada palabra
-    var lemmas = words.map(lemmatizeWord);
+  // Rellenar con ceros si es necesario para alcanzar la longitud máxima
+  const paddedZeros = Array(maxLength - paddedSentence.length).fill(0);
   
-    // Mostrar los resultados
-    console.log(lemmas.join(' '));
-  }
+  // Crear el arreglo de entrada final
+  const inputArray = paddedSentence.concat(paddedZeros);
   
-  // Función para lematizar una palabra individual
-  function lemmatizeWord(word) {
-    // Aquí puedes definir tus propias reglas de lematización
-    // Por ejemplo, convirtiendo plurales a singulares, etc.
-    // Este ejemplo solo cubre algunas reglas básicas
+  const model = tf.sequential();
+  model.add(tf.layers.dense({ units: 1, inputShape: [maxLength] }));
+  model.compile({ loss: 'meanSquaredError', optimizer: 'sgd' });
   
-    if (word.endsWith('s')) {
-      // Eliminar la 's' al final para convertir plurales a singulares
-      return word.slice(0, -1);
-    }
+  const xs = tf.tensor2d([inputArray], [1, maxLength]); // Asegurar que tenga forma [1, maxLength]
+  const ys = tf.tensor2d([[1]]);
   
-    // Devolver la palabra original si no se aplica ninguna regla
-    return word;
-  }
+  model.fit(xs, ys).then(() => {
+    const inputSentence = "Quiero correr mañana";
+    const preprocessedInput = preprocessText(inputSentence);
   
-  // Ejemplo de uso
-  var inputText = "Los gatos negros saltan sobre los techos";
-  lemmatizeText(inputText);
+    // Ajustar la longitud del texto preprocesado de entrada al máximo permitido
+    const paddedInput = preprocessedInput.slice(0, maxLength);
   
+    // Rellenar con ceros si es necesario para alcanzar la longitud máxima
+    const paddedZeros = Array(maxLength - paddedInput.length).fill(0);
   
-  
-  // Notice there is no 'import' statement. 'tf' is available on the index-page
-        // because of the script tag above.
-  
-        // Define a model for linear regression.
-        const model = tf.sequential();
-        model.add(tf.layers.dense({units: 1, inputShape: [1]}));
-  
-        // Prepare the model for training: Specify the loss and the optimizer.
-        model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
-  
-        // Generate some synthetic data for training.
-        const xs = tf.tensor2d([1, 2, 3, 4], [4, 1]);
-        const ys = tf.tensor2d([1, 3, 5, 7], [4, 1]);
-  
-        // Train the model using the data.
-        model.fit(xs, ys).then(() => {
-          // Use the model to do inference on a data point the model hasn't seen before:
-          // Open the browser devtools to see the output
-          model.predict(tf.tensor2d([5], [1, 1])).print();
-        });
+    // Crear el arreglo de entrada final para la predicción
+    const inputArray = paddedInput.concat(paddedZeros);
+    
+    const inputTensor = tf.tensor2d([inputArray], [1, maxLength]);
+    const prediction = model.predict(inputTensor);
+    prediction.print();
+  });
+  /*
+  El número que ves, como por ejemplo [[6.0515614],], corresponde a la predicción generada por el modelo TensorFlow.js.
+
+En este caso, el modelo está configurado con una capa de salida que tiene un solo neurón (units: 1). 
+Cuando realizas la predicción utilizando el método model.predict(), obtienes un tensor que contiene los valores predichos por el modelo.
+
+El tensor resultante tiene una forma de [1, 1], lo que significa que es una matriz de una fila y una columna. 
+El valor numérico predicho se encuentra en la posición (0, 0) de esta matriz. En el ejemplo que mencionaste, el número 6.0515614 es el valor predicho por el modelo.
+
+Cabe destacar que este número puede cambiar en cada ejecución del código debido
+ a que el modelo está sujeto a variaciones aleatorias durante el proceso de entrenamiento y optimización. Además, 
+ los resultados pueden variar dependiendo de los datos de entrada y la configuración del modelo.
+
+Si deseas obtener el valor numérico predicho sin la estructura del tensor, puedes acceder a él utilizando el método 
+arraySync() para convertir el tensor en un arreglo de JavaScript. Por ejemplo, puedes hacer prediction.arraySync()[0][0]
+ para obtener directamente el valor predicho sin la estructura del tensor.*/
